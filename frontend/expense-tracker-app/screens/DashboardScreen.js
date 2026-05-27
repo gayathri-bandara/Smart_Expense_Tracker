@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useLayoutEffect } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
-import { PieChart } from "react-native-chart-kit";
+import { PieChart, LineChart } from "react-native-chart-kit";
 import API, { getUploadsBaseUrl } from "../services/api";
 import { colors, spacing, radii } from "../constants/layout";
 import { Feather } from "@expo/vector-icons";
@@ -25,6 +25,47 @@ export default function DashboardScreen({ route, navigation }) {
   const { token } = route.params;
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => {
+            if (Platform.OS === "web") {
+              const confirmLogout = window.confirm("Are you sure you want to log out?");
+              if (confirmLogout) {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              }
+            } else {
+              Alert.alert(
+                "Logout",
+                "Are you sure you want to log out?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Logout",
+                    style: "destructive",
+                    onPress: () => {
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Login" }],
+                      });
+                    },
+                  },
+                ]
+              );
+            }
+          }}
+          style={{ paddingHorizontal: 10 }}
+        >
+          <Feather name="log-out" size={20} color="#FFFFFF" />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
   const screenWidth = Dimensions.get("window").width;
   const chartWidth = Math.min(screenWidth - spacing.lg * 2, 400);
@@ -111,6 +152,101 @@ export default function DashboardScreen({ route, navigation }) {
 
   const chartData = getCategoryData();
 
+  const getMonthlyData = () => {
+    const monthly = {};
+
+    transactions.forEach((item) => {
+      if (item.type === "expense") {
+        const month = new Date(item.date).toLocaleString("default", {
+          month: "short",
+        });
+
+        monthly[month] =
+          (monthly[month] || 0) + Number(item.amount);
+      }
+    });
+
+    const labels = Object.keys(monthly);
+    const data = Object.values(monthly);
+
+    return {
+      labels,
+      datasets: [
+        {
+          data: data.length > 0 ? data : [0],
+        },
+      ],
+    };
+  };
+
+  const getTotals = () => {
+    let totalExpense = 0;
+    let totalIncome = 0;
+
+    transactions.forEach((item) => {
+      if (item.type === "expense") {
+        totalExpense += Number(item.amount);
+      } else {
+        totalIncome += Number(item.amount);
+      }
+    });
+
+    return { totalExpense, totalIncome };
+  };
+
+  const { totalExpense, totalIncome } = getTotals();
+
+  const getTopCategory = () => {
+    const data = {};
+
+    transactions.forEach((item) => {
+      if (item.type === "expense") {
+        data[item.category] =
+          (data[item.category] || 0) + Number(item.amount);
+      }
+    });
+
+    const categories = Object.keys(data);
+
+    if (categories.length === 0) return null;
+
+    let top = categories[0];
+
+    categories.forEach((cat) => {
+      if (data[cat] > data[top]) {
+        top = cat;
+      }
+    });
+
+    return top;
+  };
+
+  const getMonthlyComparison = () => {
+    const monthly = {};
+
+    transactions.forEach((item) => {
+      if (item.type === "expense") {
+        const month = new Date(item.date).getMonth();
+
+        monthly[month] =
+          (monthly[month] || 0) + Number(item.amount);
+      }
+    });
+
+    const months = Object.keys(monthly).sort();
+
+    if (months.length < 2) return null;
+
+    const last = monthly[months[months.length - 1]];
+    const prev = monthly[months[months.length - 2]];
+
+    if (last > prev) {
+      return "Spending increased this month 📈";
+    } else {
+      return "Spending decreased this month 📉";
+    }
+  };
+
   const formatDate = (value) => {
     if (!value) return "—";
     return new Date(value).toLocaleDateString();
@@ -132,31 +268,70 @@ export default function DashboardScreen({ route, navigation }) {
     </View>
   );
 
-  const renderFooter = () => (
-    <View style={styles.footerBlock}>
-      <Text style={styles.sectionTitle}>Expense breakdown</Text>
-      {chartData.length > 0 ? (
-        <View style={styles.chartWrap}>
-          <PieChart
-            data={chartData}
-            width={chartWidth}
-            height={220}
-            chartConfig={{
-              color: () => colors.text,
-            }}
-            accessor="amount"
-            backgroundColor="transparent"
-            paddingLeft="12"
-            absolute
-          />
+  const renderCharts = () => {
+    const isWebOrWide = Platform.OS === "web" || screenWidth > 768;
+    const halfChartWidth = isWebOrWide
+      ? Math.min((screenWidth - spacing.md * 4) / 2 - 10, 500)
+      : screenWidth - spacing.md * 2;
+
+    const monthlyData = getMonthlyData();
+
+    return (
+      <View style={styles.chartsRow}>
+        {/* Left Side: Expense breakdown */}
+        <View style={styles.chartCol}>
+          <Text style={styles.sectionTitle}>Expense breakdown</Text>
+          {chartData.length > 0 ? (
+            <View style={styles.chartWrap}>
+              <PieChart
+                data={chartData}
+                width={halfChartWidth}
+                height={220}
+                chartConfig={{
+                  color: () => colors.text,
+                }}
+                accessor="amount"
+                backgroundColor="transparent"
+                paddingLeft="12"
+                absolute
+              />
+            </View>
+          ) : (
+            <Text style={styles.emptyChart}>
+              Add expense transactions to see a category chart.
+            </Text>
+          )}
         </View>
-      ) : (
-        <Text style={styles.emptyChart}>
-          Add expense transactions to see a category chart.
-        </Text>
-      )}
-    </View>
-  );
+
+        {/* Right Side: Monthly Spending Trend */}
+        <View style={styles.chartCol}>
+          <Text style={styles.sectionTitle}>Monthly Spending Trend</Text>
+          {transactions.length > 0 && monthlyData.labels.length > 0 ? (
+            <View style={styles.chartWrap}>
+              <LineChart
+                data={monthlyData}
+                width={halfChartWidth}
+                height={220}
+                chartConfig={{
+                  backgroundColor: colors.surface,
+                  backgroundGradientFrom: colors.surface,
+                  backgroundGradientTo: colors.surface,
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => `rgba(15, 118, 110, ${opacity})`,
+                  labelColor: (opacity = 1) => colors.text,
+                }}
+                style={{ borderRadius: radii.md }}
+              />
+            </View>
+          ) : (
+            <Text style={styles.emptyChart}>
+              No monthly expense data to display.
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   const renderTransactionCard = ({ item }) => (
     <View style={styles.horizontalCard}>
@@ -245,9 +420,38 @@ export default function DashboardScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {renderHeader()}
+        
+        <View style={{ marginVertical: 15 }}>
+          <Text style={{ fontSize: 18, color: colors.text, fontWeight: "600" }}>
+            Total Expense: Rs. {totalExpense.toFixed(2)}
+          </Text>
+          <Text style={{ fontSize: 18, color: colors.text, fontWeight: "600" }}>
+            Total Income: Rs. {totalIncome.toFixed(2)}
+          </Text>
+        </View>
+
+        {/* Insight Card */}
+        <View style={{ marginVertical: 10, padding: spacing.md, backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border }}>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: colors.textMuted }}>
+            🔍 Insight:
+          </Text>
+
+          <Text style={{ fontSize: 18, fontWeight: "bold", color: colors.primary, marginTop: 5 }}>
+            {getTopCategory()
+              ? `You spent most on ${getTopCategory()}`
+              : "No data available"}
+          </Text>
+
+          {getMonthlyComparison() ? (
+            <Text style={{ fontSize: 16, marginTop: 8, color: colors.text, fontWeight: "500" }}>
+              {getMonthlyComparison()}
+            </Text>
+          ) : null}
+        </View>
+
         <Text style={styles.sectionTitle}>Transactions</Text>
         {renderTransactionsList()}
-        {renderFooter()}
+        {renderCharts()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -377,6 +581,14 @@ const styles = StyleSheet.create({
   footerBlock: {
     marginTop: spacing.lg,
     paddingBottom: spacing.md,
+  },
+  chartsRow: {
+    flexDirection: Platform.OS === "web" || Dimensions.get("window").width > 768 ? "row" : "column",
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  chartCol: {
+    flex: 1,
   },
   chartWrap: {
     alignItems: "center",
