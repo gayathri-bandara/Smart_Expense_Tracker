@@ -38,3 +38,5 @@ Technologies used:
 
 Pupose of doing this project:
 This application was developed as part of to demonstrate full stack development skils and integrate data analytics concepts into a real world mobile application.
+
+Able to run in both PC and mobile.
