@@ -6,6 +6,8 @@ import RegisterScreen from "../screens/RegisterScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 import AddTransactionScreen from "../screens/AddTransactionScreen";
 import EditTransactionScreen from "../screens/EditTransactionScreen";
+import ChatbotScreen from "../screens/ChatbotScreen";
+import ReceiptScannerScreen from "../screens/ReceiptScannerScreen";
 import { colors } from "../constants/layout";
 
 const Stack = createNativeStackNavigator();
@@ -44,6 +46,20 @@ export default function AppNavigator() {
         name="EditTransaction"
         component={EditTransactionScreen}
         options={{ title: "Edit transaction" }}
+      />
+      <Stack.Screen
+        name="Chatbot"
+        component={ChatbotScreen}
+        options={{ title: "Smart Assistant" }}
+      />
+      <Stack.Screen
+        name="ReceiptScanner"
+        component={ReceiptScannerScreen}
+        options={{
+          title: "Scan Receipt",
+          headerStyle: { backgroundColor: "#000000" },
+          headerTintColor: "#FFFFFF",
+        }}
       />
     </Stack.Navigator>
   );

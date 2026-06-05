@@ -12,11 +12,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import { Feather } from "@expo/vector-icons";
 import API from "../services/api";
 import { colors, spacing, radii } from "../constants/layout";
 
 export default function AddTransactionScreen({ route, navigation }) {
-  const { token } = route.params;
+  const { token, scannedData } = route.params || {};
 
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
@@ -25,6 +26,16 @@ export default function AddTransactionScreen({ route, navigation }) {
   const [date, setDate] = useState("");
   const [image, setImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (scannedData) {
+      if (scannedData.title) setTitle(scannedData.title);
+      if (scannedData.amount) setAmount(scannedData.amount);
+      if (scannedData.category) setCategory(scannedData.category);
+      if (scannedData.date) setDate(scannedData.date);
+      if (scannedData.image) setImage(scannedData.image);
+    }
+  }, [scannedData]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -85,6 +96,14 @@ export default function AddTransactionScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
+          <Pressable
+            style={styles.scannerBtn}
+            onPress={() => navigation.navigate("ReceiptScanner", { token })}
+          >
+            <Feather name="camera" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={styles.scannerBtnText}>✨ Scan Receipt & Auto-Fill</Text>
+          </Pressable>
+
           <Text style={styles.label}>Title</Text>
           <TextInput
             style={styles.input}
@@ -273,5 +292,21 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+  scannerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+    borderRadius: radii.sm,
+    paddingVertical: 12,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primaryDark,
+  },
+  scannerBtnText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });

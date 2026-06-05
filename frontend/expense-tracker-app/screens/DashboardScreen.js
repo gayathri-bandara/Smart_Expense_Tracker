@@ -29,43 +29,51 @@ export default function DashboardScreen({ route, navigation }) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable
-          onPress={() => {
-            if (Platform.OS === "web") {
-              const confirmLogout = window.confirm("Are you sure you want to log out?");
-              if (confirmLogout) {
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: "Login" }],
-                });
-              }
-            } else {
-              Alert.alert(
-                "Logout",
-                "Are you sure you want to log out?",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Logout",
-                    style: "destructive",
-                    onPress: () => {
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Login" }],
-                      });
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable
+            onPress={() => navigation.navigate("Chatbot", { token })}
+            style={{ paddingHorizontal: 12 }}
+          >
+            <Feather name="message-square" size={20} color="#FFFFFF" />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              if (Platform.OS === "web") {
+                const confirmLogout = window.confirm("Are you sure you want to log out?");
+                if (confirmLogout) {
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" }],
+                  });
+                }
+              } else {
+                Alert.alert(
+                  "Logout",
+                  "Are you sure you want to log out?",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Logout",
+                      style: "destructive",
+                      onPress: () => {
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Login" }],
+                        });
+                      },
                     },
-                  },
-                ]
-              );
-            }
-          }}
-          style={{ paddingHorizontal: 10 }}
-        >
-          <Feather name="log-out" size={20} color="#FFFFFF" />
-        </Pressable>
+                  ]
+                );
+              }
+            }}
+            style={{ paddingHorizontal: 12 }}
+          >
+            <Feather name="log-out" size={20} color="#FFFFFF" />
+          </Pressable>
+        </View>
       ),
     });
-  }, [navigation]);
+  }, [navigation, token]);
 
   const screenWidth = Dimensions.get("window").width;
   const chartWidth = Math.min(screenWidth - spacing.lg * 2, 400);
@@ -258,13 +266,21 @@ export default function DashboardScreen({ route, navigation }) {
       <Text style={styles.summary}>
         {transactions.length} transaction{transactions.length === 1 ? "" : "s"}
       </Text>
-
-      <Pressable
-        style={styles.addButton}
-        onPress={() => navigation.navigate("AddTransaction", { token })}
-      >
-        <Text style={styles.addButtonText}>+ Add transaction</Text>
-      </Pressable>
+ 
+      <View style={styles.actionRow}>
+        <Pressable
+          style={styles.addButton}
+          onPress={() => navigation.navigate("AddTransaction", { token })}
+        >
+          <Text style={styles.addButtonText}>+ Add transaction</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.addButton, styles.scanButton]}
+          onPress={() => navigation.navigate("ReceiptScanner", { token })}
+        >
+          <Text style={styles.scanButtonText}>📷 Scan receipt</Text>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -489,8 +505,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
   },
-  addButton: {
+  actionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
     marginTop: spacing.md,
+  },
+  addButton: {
+    flex: 1,
     backgroundColor: colors.primary,
     borderRadius: radii.sm,
     paddingVertical: 14,
@@ -498,6 +519,16 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  scanButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  scanButtonText: {
+    color: colors.primary,
     fontSize: 16,
     fontWeight: "700",
   },

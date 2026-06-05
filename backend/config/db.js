@@ -10,7 +10,9 @@ const connectDB = async () => {
   }
 
   try {
-    await mongoose.connect(primaryUri);
+    await mongoose.connect(primaryUri, {
+      serverSelectionTimeoutMS: 5000,
+    });
     console.log("MongoDB Connected ✅");
     return;
   } catch (error) {
@@ -24,7 +26,15 @@ const connectDB = async () => {
     );
 
     try {
-      await mongoose.connect(localUri);
+      await mongoose.disconnect();
+    } catch (disconnectError) {
+      console.warn("Mongoose disconnect failed:", disconnectError.message);
+    }
+
+    try {
+      await mongoose.connect(localUri, {
+        serverSelectionTimeoutMS: 5000,
+      });
       console.log(`MongoDB Connected (local) ✅ ${localUri}`);
     } catch (localError) {
       console.error("MongoDB connection failed:", localError.message);

@@ -11,12 +11,16 @@ const {
   getTransactionById,
   updateTransaction,
   deleteTransaction,
+  scanReceipt,
 } = require("../controllers/transactionController");
 
 // ✅ PROTECT ALL ROUTES FIRST
 router.use(authMiddleware);
 
 // ✅ ROUTES
+
+// SCAN Receipt (AI OCR parsing)
+router.post("/scan", upload.single("receipt"), scanReceipt);
 
 // CREATE (with image upload)
 router.post("/", upload.single("receipt"), createTransaction);
